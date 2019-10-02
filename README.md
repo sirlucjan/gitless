@@ -3,8 +3,6 @@ Gitless
 
 [![PyPI version](https://img.shields.io/pypi/v/gitless.svg)](https://pypi.org/project/gitless "PyPI version")
 [![Homebrew Formula](https://img.shields.io/homebrew/v/gitless.svg)](https://formulae.brew.sh/formula/gitless "Homebrew Formula")
-[![Snap Package](https://img.shields.io/badge/snap%20store-v0.8.7-orange.svg)](https://snapcraft.io/gitless)
-
 
 [![Travis Build Status](https://img.shields.io/travis/sdg-mit/gitless/master.svg)](https://travis-ci.org/sdg-mit/gitless "Travis Build Status")
 [![AppVeyor Build Status](https://ci.appveyor.com/api/projects/status/github/sdg-mit/gitless?svg=true)](https://ci.appveyor.com/project/spderosso/gitless "AppVeyor Build Status")
@@ -29,6 +27,23 @@ way, you can keep using Git, and switch between Git and Gitless seamlessly.
 We currently require Git (1.7.12+) to be installed (but this requirement is
 going to disappear soon once we finish with our migration to [pygit2](https://github.com/libgit2/pygit2)).
 
+
+### Binary release (macOS and Linux only)
+
+Binary releases for macOS and Linux are available from the
+[Gitless website](http://gitless.com "Gitless's website").
+
+If you've downloaded a binary release of Gitless everything is contained in the
+gl binary, so to install simply do:
+
+    $ cp path-to-downloaded-gl-binary /usr/local/bin/gl
+
+You can put the binary in other locations as well, just be sure to update your
+`PATH`.
+
+If for some reason this doesn't work (maybe you are running an old version of
+your OS?), try one of the other options (installing from source or via
+the Python Package Index).
 
 ### Installing from source
 
@@ -73,23 +88,6 @@ brew update
 brew install gitless
 ```
 
-### Binary release (macOS only)
-
-A binary release for macOS is available from the
-[Gitless website](http://gitless.com "Gitless's website").
-
-If you've downloaded a binary release of Gitless everything is contained in the
-gl binary, so to install simply do:
-
-    $ cp path-to-downloaded-gl-binary /usr/local/bin/gl
-
-You can put the binary in other locations as well, just be sure to update your
-`PATH`.
-
-If for some reason this doesn't work (maybe you are running an old version of
-your OS?), try one of the other options (installing from source or via
-the Python Package Index).
-
 ### Installing via Snapcraft (Linux only)
 
 If you are using [Snapcraft](https://snapcraft.io/ "Snapcraft"), a
@@ -116,6 +114,11 @@ If you find a bug, you can help us by submitting an issue to our
 GitHub Repository. If you'd like to contribute
 code, here are some useful things to know:
 
+- To install gitless for development, [install pygit2](
+  http://www.pygit2.org/install.html "pygit2 install"), clone the repo,
+  `cd` to the repo root and do `./setup.py develop`. This will install
+  the `gl` command with a symlink to your source files. You can make
+  changes to your code and run `gl` to test them.
 - We follow (to some extent) the [Google Python Style Guide](
     https://google.github.io/styleguide/pyguide.html
     "Google Python Style Guide").

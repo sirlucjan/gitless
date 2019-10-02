@@ -65,12 +65,16 @@ def error_on_none(path):
   return path
 
 
-def init_repository(url=None):
+def init_repository(url=None, only=None, exclude=None):
   """Creates a new Gitless's repository in the cwd.
 
   Args:
     url: if given the local repository will be a clone of the remote repository
       given by this url.
+    only: if given, this local repository will consist only of the branches
+      in this set
+    exclude: if given, and only is not given, this local repository will
+      consistent of all branches not in this set
   """
   cwd = os.getcwd()
   try:
@@ -89,10 +93,15 @@ def init_repository(url=None):
       raise GlError(stderr(e))
 
     # We get all remote branches as well and create local equivalents
+    # Flags: only branches take precedence over exclude branches.
     repo = Repository()
     remote = repo.remotes['origin']
     for rb in (remote.lookup_branch(bn) for bn in remote.listall_branches()):
       if rb.branch_name == 'master':
+        continue
+      if only and rb.branch_name not in only:
+        continue
+      elif not only and exclude and rb.branch_name in exclude:
         continue
       new_b = repo.create_branch(rb.branch_name, rb.head)
       new_b.upstream = rb
@@ -444,6 +453,9 @@ class RemoteCollection(object):
   def delete(self, name):
     self.git_remote_collection.delete(name)
 
+  def rename(self, name, new_name):
+    self.git_remote_collection.rename(name, new_name)
+
 
 class Remote(object):
   """Tracked remote repository.
@@ -496,6 +508,12 @@ class Remote(object):
     git.fetch(self.git_remote.name, branch_name)
     git_branch = self.gl_repo.git_repo.lookup_branch(
         self.git_remote.name + '/' + branch_name, pygit2.GIT_BRANCH_REMOTE)
+    # Make another check for the branch being None
+    # As observed in issue : https://github.com/sdg-mit/gitless/issues/211
+    if git_branch is None:
+        git.fetch(self.git_remote.name)
+        git_branch = self.gl_repo.git_repo.lookup_branch(
+            self.git_remote.name + '/' + branch_name, pygit2.GIT_BRANCH_REMOTE)
     return RemoteBranch(git_branch, self.gl_repo)
 
 
@@ -643,6 +661,9 @@ class Branch(object):
     s_id, _ = _stash(_stash_msg(self.branch_name))
     if s_id:
       git.stash.drop(s_id)
+
+  def rename(self, new_name):
+    self.git_branch.rename(new_name)
 
   @property
   def upstream(self):
