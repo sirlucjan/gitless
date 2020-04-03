@@ -68,7 +68,7 @@ setup(
     packages=['gitless', 'gitless.cli'],
     install_requires=[
       # make sure it matches requirements.txt
-      'pygit2>=1.1.1', # requires libgit2 0.99 or 1.0
+      'pygit2==1.1.1', # requires libgit2 0.99 or 1.0
       'clint>=0.3.6',
       'sh>=1.11' if sys.platform != 'win32' else 'pbs>=0.11'
     ],
