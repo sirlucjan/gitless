@@ -5,8 +5,6 @@
 """Utility library for tests."""
 
 
-from __future__ import unicode_literals
-
 import io
 from locale import getpreferredencoding
 import logging
@@ -18,14 +16,9 @@ import sys
 import tempfile
 import unittest
 
-if sys.platform != 'win32':
-  from sh import git, ErrorReturnCode
-else:
-  from pbs import ErrorReturnCode, Command
-  git = Command('git')
+from subprocess import run, CalledProcessError
 
 
-IS_PY2 = sys.version_info[0] == 2
 ENCODING = getpreferredencoding() or 'utf-8'
 
 
@@ -42,24 +35,12 @@ class TestBase(unittest.TestCase):
     """Removes the temporary dir."""
     rmtree(self.path)
 
-  # Python 2/3 compatibility
-  def assertItemsEqual(self, actual, expected, msg=None):
-    try:
-      return super(TestBase, self).assertItemsEqual(actual, expected, msg=msg)
-    except AttributeError:
-      try:
-        # Checks that actual and expected have the same elements in the same
-        # number, regardless of their order
-        return super(TestBase, self).assertCountEqual(actual, expected, msg=msg)
-      except AttributeError:
-        return self.assertEqual(sorted(actual), sorted(expected), msg=msg)
-
   def assertRaisesRegexp(self, exc, r, fun, *args, **kwargs):
     try:
       fun(*args, **kwargs)
       self.fail('Exception not raised')
     except exc as e:
-      msg = stderr(e) if isinstance(e, ErrorReturnCode) else str(e)
+      msg = e.stderr if isinstance(e, CalledProcessError) else str(e)
       if not re.search(r, msg):
         self.fail('No "{0}" found in "{1}"'.format(r, msg))
 
@@ -107,8 +88,8 @@ def append_to_file(fp, contents=''):
 
 
 def set_test_config():
-  git.config('user.name', 'test')
-  git.config('user.email', 'test@test.com')
+  git('config', 'user.name', 'test')
+  git('config', 'user.email', 'test@test.com')
 
 
 def read_file(fp):
@@ -117,20 +98,24 @@ def read_file(fp):
   return ret
 
 
-def stdout(p):
-  return p.stdout.decode(ENCODING)
+def git(*args, cwd=None, _in=None):
+  p = run(
+    ['git', '--no-pager', *args], capture_output=True, check=True, cwd=cwd,
+    input=_in, encoding=ENCODING)
+  return p.stdout
 
 
-def stderr(p):
-  return p.stderr.decode(ENCODING)
+def gl(*args, cwd=None, _in=None):
+  p = run(
+    ['gl', *args], capture_output=True, check=True, cwd=cwd,
+    input=_in, encoding=ENCODING)
+  return p.stdout
 
 
 # Private functions
 
 
 def _x_file(x, fp, contents=''):
-  assert not IS_PY2 or isinstance(contents, unicode)
-
   if not contents:
     contents = fp
   dirs, _ = os.path.split(fp)

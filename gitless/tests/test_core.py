@@ -5,21 +5,14 @@
 """Core unit tests."""
 
 
-from __future__ import unicode_literals
-
 from functools import wraps
 import os
 import shutil
 import tempfile
 import unittest
 import argparse
-
 import sys
-if sys.platform != 'win32':
-  from sh import git
-else:
-  from pbs import Command
-  git = Command('git')
+from subprocess import CalledProcessError
 
 from gitless import core
 from gitless.cli import gl, helpers, gl_track
@@ -86,7 +79,7 @@ class TestCore(utils_lib.TestBase):
 
   def setUp(self):
     super(TestCore, self).setUp('gl-core-test')
-    git.init()
+    utils_lib.git('init')
     utils_lib.set_test_config()
     self.repo = core.Repository()
 
@@ -155,14 +148,16 @@ class TestFile(TestCore):
     utils_lib.write_file(TRACKED_DIR_DIR_FP, contents=TRACKED_FP_CONTENTS_1)
     utils_lib.write_file(
         TRACKED_DIR_DIR_FP_WITH_SPACE, contents=TRACKED_FP_CONTENTS_1)
-    git.add(
-        TRACKED_FP, TRACKED_FP_WITH_SPACE,
-        TRACKED_DIR_FP, TRACKED_DIR_FP_WITH_SPACE,
-        TRACKED_DIR_DIR_FP, TRACKED_DIR_DIR_FP_WITH_SPACE)
-    git.commit(
-        TRACKED_FP, TRACKED_FP_WITH_SPACE,
-        TRACKED_DIR_FP, TRACKED_DIR_FP_WITH_SPACE,
-        TRACKED_DIR_DIR_FP, TRACKED_DIR_DIR_FP_WITH_SPACE, m='1')
+    utils_lib.git(
+      'add',
+      TRACKED_FP, TRACKED_FP_WITH_SPACE,
+      TRACKED_DIR_FP, TRACKED_DIR_FP_WITH_SPACE,
+      TRACKED_DIR_DIR_FP, TRACKED_DIR_DIR_FP_WITH_SPACE)
+    utils_lib.git(
+      'commit',
+      TRACKED_FP, TRACKED_FP_WITH_SPACE,
+      TRACKED_DIR_FP, TRACKED_DIR_FP_WITH_SPACE,
+      TRACKED_DIR_DIR_FP, TRACKED_DIR_DIR_FP_WITH_SPACE, '-m', '1')
     utils_lib.write_file(TRACKED_FP, contents=TRACKED_FP_CONTENTS_2)
     utils_lib.write_file(TRACKED_FP_WITH_SPACE, contents=TRACKED_FP_CONTENTS_2)
     utils_lib.write_file(TRACKED_DIR_FP, contents=TRACKED_FP_CONTENTS_2)
@@ -171,10 +166,11 @@ class TestFile(TestCore):
     utils_lib.write_file(TRACKED_DIR_DIR_FP, contents=TRACKED_FP_CONTENTS_2)
     utils_lib.write_file(
         TRACKED_DIR_DIR_FP_WITH_SPACE, contents=TRACKED_FP_CONTENTS_2)
-    git.commit(
-        TRACKED_FP, TRACKED_FP_WITH_SPACE,
-        TRACKED_DIR_FP, TRACKED_DIR_FP_WITH_SPACE,
-        TRACKED_DIR_DIR_FP, TRACKED_DIR_DIR_FP_WITH_SPACE, m='2')
+    utils_lib.git(
+      'commit',
+      TRACKED_FP, TRACKED_FP_WITH_SPACE,
+      TRACKED_DIR_FP, TRACKED_DIR_FP_WITH_SPACE,
+      TRACKED_DIR_DIR_FP, TRACKED_DIR_DIR_FP_WITH_SPACE, '-m', '2')
     utils_lib.write_file(UNTRACKED_FP)
     utils_lib.write_file(UNTRACKED_FP_WITH_SPACE)
     utils_lib.write_file(UNTRACKED_DIR_FP)
@@ -738,17 +734,23 @@ class TestFileResolve(TestFile):
     super(TestFileResolve, self).setUp()
 
     # Generate a conflict
-    git.checkout(b='branch')
-    utils_lib.write_file(FP_IN_CONFLICT, contents='branch')
-    utils_lib.write_file(DIR_FP_IN_CONFLICT, contents='branch')
-    git.add(FP_IN_CONFLICT, DIR_FP_IN_CONFLICT)
-    git.commit(FP_IN_CONFLICT, DIR_FP_IN_CONFLICT, m='branch')
-    git.checkout('master')
+    bname = 'branch'
+    utils_lib.git('checkout', '-b', bname)
+    utils_lib.write_file(FP_IN_CONFLICT, contents=bname)
+    utils_lib.write_file(DIR_FP_IN_CONFLICT, contents=bname)
+    utils_lib.git('add', FP_IN_CONFLICT, DIR_FP_IN_CONFLICT)
+    utils_lib.git('commit', FP_IN_CONFLICT, DIR_FP_IN_CONFLICT, '-m', bname)
+    utils_lib.git('checkout', 'master')
     utils_lib.write_file(FP_IN_CONFLICT, contents='master')
     utils_lib.write_file(DIR_FP_IN_CONFLICT, contents='master')
-    git.add(FP_IN_CONFLICT, DIR_FP_IN_CONFLICT)
-    git.commit(FP_IN_CONFLICT, DIR_FP_IN_CONFLICT, m='master')
-    git.merge('branch', _ok_code=[1])
+    utils_lib.git('add', FP_IN_CONFLICT, DIR_FP_IN_CONFLICT)
+    utils_lib.git('commit', FP_IN_CONFLICT, DIR_FP_IN_CONFLICT, '-m', 'master')
+    try:
+      utils_lib.git('merge', bname)
+      raise Exception('The merge should have failed')
+    except CalledProcessError as e:
+      # we expect the merge to fail
+      pass
 
   @assert_no_side_effects(TRACKED_FP)
   def test_resolve_fp_with_no_conflicts(self):
@@ -854,14 +856,14 @@ class TestBranch(TestCore):
 
     # Build up an interesting mock repo.
     utils_lib.write_file(TRACKED_FP, contents=TRACKED_FP_CONTENTS_1)
-    git.add(TRACKED_FP)
-    git.commit(TRACKED_FP, m='1')
+    utils_lib.git('add', TRACKED_FP)
+    utils_lib.git('commit', TRACKED_FP, '-m', '1')
     utils_lib.write_file(TRACKED_FP, contents=TRACKED_FP_CONTENTS_2)
-    git.commit(TRACKED_FP, m='2')
+    utils_lib.git('commit', TRACKED_FP, '-m', '2')
     utils_lib.write_file(UNTRACKED_FP, contents=UNTRACKED_FP_CONTENTS)
     utils_lib.write_file('.gitignore', contents='{0}'.format(IGNORED_FP))
     utils_lib.write_file(IGNORED_FP)
-    git.branch(BRANCH)
+    utils_lib.git('branch', BRANCH)
 
     self.curr_b = self.repo.current_branch
 
@@ -939,7 +941,7 @@ class TestBranchSwitch(TestBranch):
 
   def test_switch_contents_still_there_tracked_commit(self):
     utils_lib.write_file(TRACKED_FP, contents='commit')
-    git.commit(TRACKED_FP, m='comment')
+    utils_lib.git('commit', TRACKED_FP, '-m', 'comment')
     self.repo.switch_current_branch(self.repo.lookup_branch(BRANCH))
     self.assertEqual(TRACKED_FP_CONTENTS_2, utils_lib.read_file(TRACKED_FP))
     self.repo.switch_current_branch(self.repo.lookup_branch('master'))
@@ -1015,7 +1017,7 @@ class TestRemoteList(TestRemote):
   def test_list_all(self):
     self.remotes.create('remote1', self.remote_path)
     self.remotes.create('remote2', self.remote_path)
-    self.assertItemsEqual(
+    self.assertCountEqual(
         ['remote1', 'remote2'], [r.name for r in self.remotes])
 
 
@@ -1038,8 +1040,8 @@ class TestRemoteSync(TestRemote):
     super(TestRemoteSync, self).setUp()
 
     utils_lib.write_file('foo', contents='foo')
-    git.add('foo')
-    git.commit('foo', m='msg')
+    utils_lib.git('add', 'foo')
+    utils_lib.git('commit', 'foo', '-m', 'msg')
 
     self.repo.remotes.create('remote', self.remote_path)
     self.remote = self.repo.remotes['remote']
@@ -1053,11 +1055,11 @@ class TestRemoteSync(TestRemote):
     # It is not a ff so it should fail
     self.assertRaises(core.GlError, current_b.publish, remote_branch)
     # Get the changes
-    git.rebase(remote_branch)
+    utils_lib.git('rebase', str(remote_branch))
     # Retry (this time it should work)
     current_b.publish(remote_branch)
 
-    self.assertItemsEqual(
+    self.assertCountEqual(
         ['master', REMOTE_BRANCH], self.remote.listall_branches())
     self.assertEqual(
         master_head_before.id, self.remote.lookup_branch('master').head.id)

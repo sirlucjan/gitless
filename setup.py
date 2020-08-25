@@ -19,7 +19,7 @@ with open('gitless/cli/gl.py', 'rb') as f:
 
 # Build helper
 if sys.argv[-1] == 'gl-build':
-  from sh import pyinstaller
+  from subprocess import run
   import shutil
   import tarfile
   import platform
@@ -28,8 +28,9 @@ if sys.argv[-1] == 'gl-build':
       version, platform.system().lower(), platform.machine())
 
   print('running pyinstaller...')
-  pyinstaller(
-      'gl.spec', clean=True, distpath=rel, _out=sys.stdout, _err=sys.stderr)
+  run(
+    ['pyinstaller', 'gl.spec', '--clean', '--distpath', rel],
+    stdout=sys.stdout, stderr=sys.stderr)
   print('success!! gl binary should be at {0}/gl'.format(rel))
 
   print('creating tar.gz file')
@@ -44,14 +45,11 @@ if sys.argv[-1] == 'gl-build':
 
 
 ld = """
-Gitless is an experimental version control system built on top of Git.
-Many people complain that Git is hard to use. We think the problem lies
-deeper than the user interface, in the concepts underlying Git. Gitless
-is an experiment to see what happens if you put a simple veneer on an
-app that changes the underlying concepts. Because Gitless is implemented
-on top of Git (could be considered what Git pros call a \"porcelain\" of
-Git), you can always fall back on Git. And of course your coworkers you
-share a repo with need never know that you're not a Git aficionado.
+Gitless is a version control system built on top of Git, that is easy to learn
+and use. It features a simple commit workflow, independent branches, and
+a friendly command-line interface. Because Gitless is implemented on top of
+Git, you can always fall back on Git. And your coworkers you share a repo with
+need never know that you're not a Git aficionado.
 
 More info, downloads and documentation @ `Gitless's
 website <http://gitless.com>`__.
@@ -60,17 +58,15 @@ website <http://gitless.com>`__.
 setup(
     name='gitless',
     version=version,
-    description='A version control system built on top of Git',
+    description='A simple version control system built on top of Git',
     long_description=ld,
     author='Santiago Perez De Rosso',
     author_email='sperezde@csail.mit.edu',
-    url='http://gitless.com',
+    url='https://gitless.com',
     packages=['gitless', 'gitless.cli'],
     install_requires=[
-      # make sure it matches requirements.txt
-      'pygit2==1.1.1', # requires libgit2 0.99 or 1.0
-      'clint>=0.3.6',
-      'sh>=1.11' if sys.platform != 'win32' else 'pbs>=0.11',
+      # make sure install_requires is consistent with requirements.txt
+      'pygit2==1.2.0', # requires libgit2 1.0.x
       'argcomplete>=1.11.1'
     ],
     license='MIT',
@@ -80,8 +76,6 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Programming Language :: Python',
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 3',
         'Topic :: Software Development :: Version Control'],
     entry_points={
         'console_scripts': [

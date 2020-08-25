@@ -5,20 +5,13 @@
 """gl - Main Gitless's command. Dispatcher to the other cmds."""
 
 
-from __future__ import unicode_literals
-
 import sys
 import argparse
 import argcomplete
 import traceback
 import pygit2
 
-if sys.platform != 'win32':
-  from sh import ErrorReturnCode
-else:
-  from pbs import ErrorReturnCode
-
-from clint.textui import colored
+from subprocess import CalledProcessError
 
 from gitless import core
 
@@ -44,9 +37,9 @@ repo = None
 try:
   repo = core.Repository()
   try:
-    colored.DISABLE_COLOR = not repo.config.get_bool('color.ui')
+    pprint.DISABLE_COLOR = not repo.config.get_bool('color.ui')
   except pygit2.GitError:
-    colored.DISABLE_COLOR = (
+    prrint.DISABLE_COLOR = (
         repo.config['color.ui'] in ['no', 'never'])
 except (core.NotInRepoError, KeyError):
   pass
@@ -126,7 +119,7 @@ def main():
   except (ValueError, pygit2.GitError, core.GlError) as e:
     pprint.err(e)
     return ERRORS_FOUND
-  except ErrorReturnCode as e:
+  except CalledProcessError as e:
     pprint.err(e.stderr)
     return ERRORS_FOUND
   except:
