@@ -39,7 +39,7 @@ try:
   try:
     pprint.DISABLE_COLOR = not repo.config.get_bool('color.ui')
   except pygit2.GitError:
-    pprint.DISABLE_COLOR = (
+    prrint.DISABLE_COLOR = (
         repo.config['color.ui'] in ['no', 'never'])
 except (core.NotInRepoError, KeyError):
   pass
